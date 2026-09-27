@@ -1,0 +1,75 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  avatar       String?
+  role         String    @default("creator")
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  projects     Project[]
+  assets       Asset[]
+  aiJobs       AIJob[]
+}
+
+model Project {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  aspectRatio String   @default("16:9") // "16:9", "9:16", "1:1", "4:5", "21:9"
+  duration    Float    @default(15.0) // duration in seconds
+  fps         Int      @default(30)
+  resolution  String   @default("1080p")
+  thumbnail   String?
+  data        String   // JSON string of tracks, clips, subtitles, filters, transitions, audio
+  isTemplate  Boolean  @default(false)
+  templateCategory String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  assets      Asset[]
+
+  @@index([userId])
+}
+
+model Asset {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  projectId String?
+  project   Project? @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  name      String
+  type      String   // "video", "audio", "image"
+  url       String
+  size      Int?     // bytes
+  duration  Float?   // seconds for video/audio
+  mimeType  String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model AIJob {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // "text-to-video", "tts", "stt", "enhance", "image-to-video"
+  provider  String   @default("local-ai")
+  status    String   @default("completed") // "pending", "processing", "completed", "failed"
+  prompt    String?
+  result    String?  // JSON result or URL
+  error     String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
